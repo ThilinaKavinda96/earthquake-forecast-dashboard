@@ -4,37 +4,32 @@ import folium
 from streamlit_folium import st_folium
 from datetime import datetime
 
-# 🧭 Streamlit page setup
-st.set_page_config(page_title="Earthquake Forecast Map", layout="wide")
+# 🔧 Setup Streamlit
+st.set_page_config(page_title="Earthquake Forecast Dashboard", layout="wide")
+st.title("🌍 Earthquake Forecast - 5 Year Prediction")
 
-# 🌍 App title
-st.title("🌍 Top 30 Earthquake Forecasts (Next 5 Years)")
-
-# 📥 Load forecast data
+# 📥 Load and preprocess forecast data
 @st.cache_data
 def load_forecast():
     df = pd.read_csv("updated_forecast.csv")
     df.columns = [col.strip().lower() for col in df.columns]
 
-    # Parse date
     df["time"] = pd.to_datetime(df["time"], errors="coerce", dayfirst=True)
     df = df.dropna(subset=["time"])
-
-    # Filter only future
     df = df[df["time"] >= datetime.now()]
 
-    return df
+    return df.sort_values(by="time", ascending=True)
 
 df = load_forecast()
 
-# ✅ Get top 30 based on predicted quake count
-top30 = df.sort_values(by="predicted_quakes", ascending=False).head(30)
+# 📋 Show FULL 5-Year Forecast Table
+st.markdown("### 📅 All Earthquake Forecasts (Next 5 Years, Chronological)")
+st.dataframe(df[["time", "country", "predicted_quakes", "magnitude_range"]])
 
-# 📋 Show forecast table
-st.markdown("### 📅 Top 30 Forecasted Earthquakes")
-st.dataframe(top30[["time", "country", "predicted_quakes", "magnitude_range"]])
+# 🎯 Take FIRST 30 ROWS from the table (for mapping)
+top30 = df.head(30)
 
-# 🎨 Color by magnitude
+# 🎨 Marker color by magnitude
 def get_color(mag_range):
     if "Severe" in mag_range:
         return "red"
@@ -43,8 +38,10 @@ def get_color(mag_range):
     else:
         return "green"
 
-# 🌐 Create map if coordinates available
+# 🗺️ Create Folium map
 if "latitude" in top30.columns and "longitude" in top30.columns:
+    st.markdown("### 🗺️ Map of First 30 Upcoming Earthquake Forecasts")
+
     m = folium.Map(location=[0, 0], zoom_start=2)
 
     for _, row in top30.iterrows():
@@ -62,7 +59,6 @@ if "latitude" in top30.columns and "longitude" in top30.columns:
             )
         ).add_to(m)
 
-    st.markdown("### 🗺️ Map of Top 30 Forecasted Earthquakes")
     st_folium(m, width=1200, height=600)
 else:
-    st.warning("⚠️ Latitude/Longitude columns missing from data.")
+    st.warning("⚠️ Latitude and longitude columns are missing.")
