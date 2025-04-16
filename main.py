@@ -1,39 +1,41 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime, timezone
+from datetime import datetime
 
+# 🧭 Configure Streamlit page
 st.set_page_config(page_title="Earthquake Forecast Dashboard", layout="wide")
 
-# 🌍 App Title
+# 🌍 App title
 st.title("🔮 Earthquake Forecast (Next 5 Years)")
 
-# 📥 Load data
+# 📥 Load forecast CSV
 @st.cache_data
 def load_forecast():
     df = pd.read_csv("updated_forecast.csv")
 
-    # 🛠 Clean and parse columns
+    # 🔧 Clean and standardize column names
     df.columns = [col.strip().lower() for col in df.columns]
     df.rename(columns={"predicted_": "predicted_quakes"}, inplace=True)
 
-    # 🕒 Parse time safely
+    # 🕒 Parse date column (dayfirst for dd/mm/yyyy format)
     df["time"] = pd.to_datetime(df["time"], errors="coerce", dayfirst=True)
     df = df.dropna(subset=["time"])
 
-    # ✅ Keep only future predictions
-    df = df[df["time"] >= datetime.now(timezone.utc)]
+    # ✅ Keep only future predictions (compare with naive datetime)
+    df = df[df["time"] >= datetime.now()]
 
     return df.sort_values(by="predicted_quakes", ascending=False)
 
+# Load data
 df = load_forecast()
 
-# 📋 Forecast Table
-st.markdown("### 📅 Forecasted Earthquakes")
+# 📋 Display full table
+st.markdown("### 📅 Forecasted Earthquakes (Sorted by Count)")
 st.dataframe(df[["time", "country", "predicted_quakes", "magnitude_range"]])
 
-# 📊 Top 10 High Risk Days
-st.markdown("### 🌋 Top 10 Highest Predicted Earthquake Days")
+# 📊 Show Top 10 predicted high-risk days
+st.markdown("### 🌋 Top 10 Highest Risk Earthquake Days")
 top = df.head(10)
 
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -44,9 +46,9 @@ ax.barh(
 )
 ax.invert_yaxis()
 ax.set_xlabel("Predicted Earthquake Count")
-ax.set_title("Top 10 High Risk Days (By Earthquake Frequency)")
+ax.set_title("Top 10 Forecasted High-Risk Days")
 st.pyplot(fig)
 
 # 📌 Footer
 st.markdown("---")
-st.caption("📡 Powered by ML + Prophet • Created by Thilina")
+st.caption("📡 ML-based Earthquake Prediction • Created by Thilina")
