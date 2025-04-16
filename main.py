@@ -3,40 +3,40 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# 🧭 Configure Streamlit page
+# 🧭 Configure page
 st.set_page_config(page_title="Earthquake Forecast Dashboard", layout="wide")
 
-# 🌍 App title
+# 🌍 Title
 st.title("🔮 Earthquake Forecast (Next 5 Years)")
 
-# 📥 Load forecast CSV
+# 📥 Load forecast data
 @st.cache_data
 def load_forecast():
     df = pd.read_csv("updated_forecast.csv")
 
-    # 🔧 Clean and standardize column names
+    # Clean column names
     df.columns = [col.strip().lower() for col in df.columns]
     df.rename(columns={"predicted_": "predicted_quakes"}, inplace=True)
 
-    # 🕒 Parse date column (dayfirst for dd/mm/yyyy format)
+    # Parse date column
     df["time"] = pd.to_datetime(df["time"], errors="coerce", dayfirst=True)
     df = df.dropna(subset=["time"])
 
-    # ✅ Keep only future predictions (compare with naive datetime)
+    # ✅ Filter only future predictions
     df = df[df["time"] >= datetime.now()]
 
-    return df.sort_values(by="predicted_quakes", ascending=False)
+    # ✅ Sort table by upcoming date
+    return df.sort_values(by="time", ascending=True)
 
-# Load data
 df = load_forecast()
 
-# 📋 Display full table
-st.markdown("### 📅 Forecasted Earthquakes (Sorted by Count)")
+# 📋 Display Table (sorted by time)
+st.markdown("### 📅 Forecasted Earthquakes (Soonest First)")
 st.dataframe(df[["time", "country", "predicted_quakes", "magnitude_range"]])
 
-# 📊 Show Top 10 predicted high-risk days
-st.markdown("### 🌋 Top 10 Highest Risk Earthquake Days")
-top = df.head(10)
+# 📊 Top 10 High-Risk Days (sorted by quake count)
+st.markdown("### 🌋 Top 10 Highest Predicted Earthquake Days")
+top = df.sort_values(by="predicted_quakes", ascending=False).head(10)
 
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.barh(
@@ -46,9 +46,9 @@ ax.barh(
 )
 ax.invert_yaxis()
 ax.set_xlabel("Predicted Earthquake Count")
-ax.set_title("Top 10 Forecasted High-Risk Days")
+ax.set_title("Top 10 High-Risk Days by Earthquake Activity")
 st.pyplot(fig)
 
 # 📌 Footer
 st.markdown("---")
-st.caption("📡 ML-based Earthquake Prediction • Created by Thilina")
+st.caption("📡 ML-based Earthquake Forecast • Powered by Prophet • Created by Thilina")
